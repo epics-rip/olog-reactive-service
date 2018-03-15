@@ -1,0 +1,22 @@
+{
+	"logbooks": [
+		{
+			"name": "FirstLogbook",
+			"owner": "carrivea",
+			"state": "Active",
+			"createdDate": "2018-03-18"
+		},
+		{
+			"name": "SecondLogbook",
+			"owner": "berryman",
+			"state": "Active",
+			"createdDate": "2018-03-18"
+		},
+		{
+			"name": "ThirdLogbook",
+			"owner": "maxwell",
+			"state": "Active",
+			"createdDate": "2018-03-18"
+		}
+	]
+}

@@ -1,0 +1,4 @@
+dn: cn=olog-logs,ou=groups,dc=frib,dc=msu,dc=edu
+changetype: modify
+add: memberuid
+memberuid: carrivea

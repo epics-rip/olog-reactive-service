@@ -1,0 +1,30 @@
+{
+	"logs": [
+		{
+			"description": "##entry1description## revised!",
+			"owner": "Eric Berryman",
+			"source": "poster",
+			"logbookIds": [
+				"##logbookids1##"
+			],
+			"state": "Active",
+			"tagIds": [
+				"##tagids2##"
+			],
+			"entry": "##entry1##"
+		},
+		{
+			"description": "##entry2description## revised!",
+			"owner": "Anthony Carriveau",
+			"source": "pyolog",
+			"logbookIds": [
+				"##logbookids3##"
+			],
+			"state": "Active",
+			"tagIds": [
+				"##tagids3##"
+			],
+			"entry": "##entry2##"
+		}
+	]
+}

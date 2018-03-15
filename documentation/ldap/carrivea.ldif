@@ -1,0 +1,16 @@
+dn: uid=carrivea,ou=users,dc=frib,dc=msu,dc=edu
+objectClass: top
+objectClass: account
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: carrivea
+uid: carrivea
+uidNumber: 16859
+gidNumber: 100
+homeDirectory: /home/carrivea
+loginShell: /bin/bash
+gecos: carrivea
+userPassword: {crypt}x
+shadowLastChange: 0
+shadowMax: 0
+shadowWarning: 0

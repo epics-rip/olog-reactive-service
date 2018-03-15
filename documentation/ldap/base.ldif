@@ -1,0 +1,13 @@
+dn: dc=frib,dc=msu,dc=edu
+objectClass: dcObject
+objectClass: organization
+o: frib.msu.edu
+dc: frib
+dn: ou=users,dc=frib,dc=msu,dc=edu
+objectClass: organizationalUnit
+objectClass: top
+ou: users
+dn: ou=groups,dc=frib,dc=msu,dc=edu
+objectClass: organizationalUnit
+objectClass: top
+ou: groups

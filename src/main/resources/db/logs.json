@@ -1,0 +1,26 @@
+{
+	"logs": [
+		{
+			"description": "first message",
+			"owner": "Anthony Carriveau",
+			"source": "poster",
+			"logbookIds": [
+			],
+			"state": "Active",
+			"tagIds": [
+			]
+		},
+		{
+			"description": "second message",
+			"owner": "Anthony Carriveau",
+			"source": "poster",
+			"state": "Active"
+		},
+		{
+			"description": "third message",
+			"owner": "Anthony Carriveau",
+			"source": "poster",
+			"state": "Active"
+		}
+	]
+}

@@ -1,0 +1,50 @@
+{
+	"logs": [
+		{
+			"description": "fourth message",
+			"owner": "Tanvi Ashwarya",
+			"source": "poster",
+			"logbookIds": [
+				"##logbookids1##",
+				"##logbookids2##"
+			],
+			"state": "Active"
+		},
+		{
+			"description": "fifth message",
+			"owner": "Dylan Maxwell",
+			"source": "poster",
+			"state": "Active",
+			"tagIds": [
+				"##tagids1##",
+				"##tagids2##"
+			]
+		},
+		{
+			"description": "sixth message",
+			"owner": "Eric Berryman",
+			"source": "poster",
+			"logbookIds": [
+				"##logbookids1##",
+				"##logbookids3##"
+			],
+			"state": "Active",
+			"tagIds": [
+				"##tagids2##",
+				"##tagids3##"
+			]
+		},
+		{
+			"description": "seventh message",
+			"owner": "John LeTourneau",
+			"source": "poster",
+			"logbookIds": [
+				"##logbookids1##"
+			],
+			"state": "Active",
+			"tagIds": [
+				"##tagids2##"
+			]
+		}
+	]
+}

@@ -1,0 +1,4 @@
+dn: ou=groups,dc=frib,dc=msu,dc=edu
+objectClass: organizationalUnit
+objectClass: top
+ou: groups

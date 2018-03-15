@@ -1,0 +1,5 @@
+dn: cn=olog-admins,ou=groups,dc=frib,dc=msu,dc=edu
+changetype: add
+objectClass: top
+objectClass: posixGroup
+gidNumber: 1015

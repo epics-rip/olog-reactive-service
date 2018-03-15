@@ -1,0 +1,19 @@
+{
+	"tags": [
+		{
+			"name": "FirstTag",
+			"state": "Active",
+			"owner": "carrivea"
+		},
+		{
+			"name": "SecondTag",
+			"state": "Active",
+			"owner": "berryman"
+		},
+		{
+			"name": "ThirdTag",
+			"state": "Active",
+			"owner": "letourneau"
+		}
+	]
+}

@@ -1,0 +1,204 @@
+V1 API for Olog Service
+
+
+resource_url_base = /Olog/resources/
+
+
+L O G
+=====
+
+
+
+/Olog/resources/logs/
+	GET {XML}
+		GET method for retrieving a collection of Log instances, based on a
+		     * multi-parameter query specifying patterns for tag and logbook details to
+		     * match against.
+		PRODUCES {APPLICATION_XML}
+	GET {JSON}
+		GET method for retrieving a collection of Log instances, based on a
+		     * multi-parameter query specifying patterns for tag and logbook details to
+		     * match against.
+		PRODUCES {JSON}
+		
+	POST (..., XmlLogs data): {XML}
+		POST method for creating multiple log instances.
+		PRODUCES list of log messages created in XML format
+	POST (..., List<XmlLogs> data): {JSON}
+		POST method for creating multiple log instances.
+		PRODUCES list of log messages created in JSON format
+
+
+/Olog/resources/logs/{logId}
+	GET INT
+		PRODUCES retrieves one instance of log identified by it's id
+	PUT INT
+		edits log instance identified by it's id
+		PRODUCES one log instance identified by id
+	POST INT: {XML | JSON}
+		method for merging logbooks and tags of the Log identified by the payload into an existing log
+		PRODUCES one log instance identified by id
+	DELETE INT
+		method to delete log instance identified by id
+		PRODUCES HTTP status code (200 means ok)
+
+/Olog/resources/import
+	POST Logs: {XML | JSON}
+		method for importing multiple log instances, create time and user persisted.
+		PRODUCES XML/JSON of log instances updated by the api call
+		
+		
+		
+L O G B O O K
+=============
+
+/Olog/resources/logbooks/
+	GET
+		method for retrieving the list of logbooks in the database
+		PRODUCES {XML | JSON}
+	POST Logbooks: {XML | JSON}
+		method for creating multiple logbooks
+		PRODUCES HTTP Response (200 ok)
+	
+/Olog/resources/logbooks/{logbookName}
+	GET String: {XML | JSON}
+		method for retrieving the logbook with the path parameter logbookName
+		PRODUCES list of logs with their logbooks and tags that match
+	PUT String,Logbook: {XML | JSON}
+		PUT method for creating and <b>exclusively</b> adding the logbook identified
+		     * by the path parameter <tt>logbookName</tt> to all logs identified by the
+		     * payload structure <tt>data</tt>.
+		     * Setting the owner attribute in the XML root element is mandatory.
+		     * Values for the logbooks are taken from the payload.
+		PRODUCES HTTP Response (200 OK)
+	POST String,Logbook: {XML | JSON}
+		method for updating the logbook identified by the path parameter <tt>name</tt>,
+		     * adding it to all logs identified by the payload structure <tt>data</tt>.
+		     * Setting the owner attribute in the XML root element is mandatory.
+		     * Values for the logbooks are taken from the payload.
+		PRODUCES HTTP Response (200 OK)
+	DELETE String: {XML | JSON}
+		DELETE method for deleting the logbook identified by <tt>logbook</tt> from the log
+			 * <tt>id</tt> (both path parameters).
+		PRODUCES HTTP Response (200 OK)
+
+/Olog/resources/logbooks/{logbookName}/{logId}
+
+	DELETE String logbookName,Long logId: {XML | JSON}
+		DELETE method for deleting the logbook identified by <tt>logbook</tt> from the log
+			 * <tt>id</tt> (both path parameters).
+		PRODUCES HTTP Response (200 OK)
+		
+
+		
+T A G S
+=======
+
+/Olog/resources/tags
+	GET
+		GET method for retrieving the list of tags in the database.
+		PRODUCES {XML | JSON}
+	POST (Tags): {XML | JSON}
+		POST method for creating multiple tags.
+		PRODUCES HTTP Response (200 ok)
+
+/Olog/resources/tags/{tagName}
+	GET (String)
+		GET method for retrieving the tag with the
+     		* path parameter <tt>tagName</tt> and its logs.
+		PRODUCES {XML | JSON}
+	PUT (String, Tag): {XML | JSON}
+		PUT method to create and <b>exclusively</b> update the tag identified by the
+		     * path parameter <tt>name</tt> to all logs identified in the payload
+		     * structure <tt>data</tt>.
+		     * Setting the owner attribute in the XML root element is mandatory.
+		PRODUCES HTTP Response (200 ok)
+	POST (String, Tag): {XML | JSON}
+		POST method to update the the tag identified by the path parameter <tt>name</tt>,
+		     * adding it to all logs identified by the logs inside the payload
+		     * structure <tt>data</tt>.
+		     * Setting the owner attribute in the XML root element is mandatory.
+		PRODUCES HTTP Response (200 ok)
+	DELETE (String)
+		DELETE method for deleting the tag identified by the path parameter <tt>name</tt>
+    		 * from all logs.
+		PRODUCES HTTP Response (200 ok)
+
+
+/Olog/resources/tags/{tagName}/{logId}
+
+	PUT (String logbookName,Long logId): {XML | JSON}
+		PUT method for adding the tag identified by <tt>tag</tt> to the single log
+    		 * <tt>id</tt> (both path parameters).
+		PRODUCES HTTP Response (200 OK)
+	DELETE (String, Long logId)
+		DELETE method for deleting the tag identified by <tt>tag</tt> from the log
+	   		 * <tt>id</tt> (both path parameters).
+		PRODUCES HTTP Response (200 OK)
+
+P R O P E R T Y
+===============
+
+/Olog/resources/properties/
+	GET
+		GET method for retrieving the list of properties in the database.
+		PRODUCES {XML | JSON}
+		
+/Olog/resources/properties/{propName}
+	GET (String propertyName)
+		GET method for retrieving the list of attributes for a given property.
+		PRODUCES {XML | JSON}
+	PUT (String propertyName, XmlProperty): {XML | JSON}
+		PUT method for adding a new property. Is destructive in nature.
+		PRODUCES {XML | JSON}
+	POST (String propertyName, XmlProperty): {XML | JSON}
+		POST method for adding a new property. Is not destructive as it appends attributes to those already there.
+		PRODUCES {XML | JSON}
+	DELETE (String propertyName)
+		DELETE method for removing a property.
+		PRODUCES HTTP Status (200 OK)
+
+	
+/Olog/resources/properties/{propName}/{logId}
+	PUT (String propertyName, XmlProperty): {XML | JSON}
+		PUT method for adding a new properties attribute to a log entry.
+		PRODUCES {XML | JSON}
+	DELETE (String property, Long logId): {XML | JSON}
+		DELETE method for removing a properties attribute from a log entry.
+		PRODUCES HTTP Status (200 OK)
+
+
+
+A T T A C H M E N T S
+=====================
+
+
+/Olog/resources/attachments/{logId}
+	GET (Long logId)
+		GET method for retrieving attachments identified by <tt>id</tt>.
+		PRODUCES XmlAttachments: {XML | JSON}  (200 OK)
+	POST (Long logId)
+		POST method for adding a new Attachment to a log entry.
+		PRODUCES XmlAttachment (200 OK)
+
+/Olog/resources/attachments/{logId}/{fileName}
+	GET (Long logId, String fileName)
+		GET method for retrieving the list of attachments for a given log.
+		PRODUCES Attachment (200 OK)
+	PUT (...,String fileName, Long logId,...)
+		PUT method for adding a new Attachment to a log entry.
+		PRODUCES String (200 OK)
+	DELETE (...,String fileName, Long logId)
+		DELETE method for removing an attachment from a log entry.
+		PRODUCES String (200 OK)
+
+/Olog/resources/attachments/{logId}/{fileName}:thumbnail
+	GET (Long logId, String fileName): MULTIPART_FORM_DATA
+		GET method for retrieving the list of attachments for a given log.
+		PRODUCES Attachment (200 OK)
+
+
+
+
+
+		
