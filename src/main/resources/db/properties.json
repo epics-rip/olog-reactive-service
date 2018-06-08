@@ -1,0 +1,30 @@
+{
+	"name": "Property1",
+	"attributes": {
+		"1key1": "1value1",
+		"1key2": "1value2",
+		"1key3": "1value3"
+	}
+},
+{
+	"properties": [
+		{
+			"property": {
+				"key": "key1",
+				"value": "value1"
+			}
+		},
+		{
+			"property": {
+				"key": "key1",
+				"value": "value1"
+			}
+		},
+		{
+			"property": {
+				"key": "key1",
+				"value": "value1"
+			}
+		}
+	]
+}

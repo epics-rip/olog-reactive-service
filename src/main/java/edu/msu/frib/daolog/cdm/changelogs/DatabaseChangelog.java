@@ -39,8 +39,7 @@ import edu.msu.frib.daolog.repository.TagDBUtils;
  * 
  * Change this text when this situation changes.
  * 
- * To turn this operation on, you must add the following to the VM Arguments:  -Dspring.profiles.active=development
- * Setting this in application.properties does not work; the reason for this is unknown to me at this time
+ * To turn this operation on, you must set profile to development, e.g.:  -Dspring.profiles.active=development
  * 
  * @author vagrant
  *

@@ -5,18 +5,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
 import com.github.mongobee.Mongobee;
 
-@Configuration
-@PropertySource("classpath:mongodb.properties")
+//Configuration
+//Profile({"development","local"})
 public class MongobeeCDM {
 
 	private static Logger logger = LoggerFactory.getLogger(MongobeeCDM.class);
 
-	@Bean @Autowired
+	//Bean //Autowired
 	public Mongobee mongobee(Environment config) {
 
 		logger.debug("starting mongobee continuous database migrating tool...URI: " + "mongodb://" + config.getProperty("mongo.host") + ":"

@@ -1,6 +1,7 @@
 package edu.msu.frib.daolog.log.attachment;
 
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -11,9 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import edu.msu.frib.daolog.log.Attachment;
-import edu.msu.frib.daolog.log.Log;
 import edu.msu.frib.daolog.repository.AttachmentRepository;
-import edu.msu.frib.daolog.repository.LogRepository;
 
 @Component
 public class LogAttachmentStorageServiceImpl implements LogAttachmentStorageService {
@@ -36,7 +35,6 @@ public class LogAttachmentStorageServiceImpl implements LogAttachmentStorageServ
 		// Then on retrieval, get the attachmentBSON value, and allow the browse to retrieve that as well...
 		
 		// first, store it
-		// https://www.mkyong.com/mongodb/spring-data-mongodb-save-binary-file-gridfs-example/
 		logger.info("about to store multipart file " + file.getName());
 
     	Attachment msg = new Attachment.Builder(file)
@@ -67,7 +65,8 @@ public class LogAttachmentStorageServiceImpl implements LogAttachmentStorageServ
 
 	@Override
 	public Resource loadAsResource(String filename) {
-		// TODO Auto-generated method stub
+		Set<Attachment> attachments = attachmentRepository.findAttachmentByFilename(filename);
+		
 		return null;
 	}
 

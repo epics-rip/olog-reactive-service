@@ -1,25 +1,26 @@
 package edu.msu.frib.daolog.controller;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import edu.msu.frib.daolog.log.Tag;
 import edu.msu.frib.daolog.log.TagWrapper;
@@ -34,45 +35,26 @@ public class TagController {
 	private TagRepository tagRepository;
 
 	/**
-	 * Create new tag provided in request body as JSON
-	 * 
-	 * @param tag
-	 * @return
-	 */
-	@PostMapping("/daolog/resources/tag/createByJSON")
-	@ResponseBody
-	public Tag testCreateTagJSON(@RequestBody Tag tag) {
-
-		tag.setCreatedDate(new Date());
-		logger.info("creating new tag " + tag.getName());
-		Tag savedTag = tagRepository.save(tag);
-		logger.info("new tag: " + tag);
-		return savedTag;
-	}
-
-	@PostMapping("/daolog/resources/tags/createByJSON")
-	@ResponseBody
-	public Set<Tag> createTags(InputStream tagsStream) throws JsonParseException, JsonMappingException, IOException {
-		
-		// call MongoDB to insert them all into the database
-		Set<Tag> savedTags = TagDBUtils.insertTags(tagRepository, tagsStream);		
-		return savedTags; 
-	}
-
-	/**
 	 * Get All tags in the database
 	 * 
 	 * @return
 	 */
 	@GetMapping("/daolog/resources/tags")
 	@ResponseBody
-	public Set<Tag> getTags() {
+	public TagWrapper getTags() {
 
 		logger.info("findAll() tags from mongodb!");
-		return TagDBUtils.findTags(tagRepository);
+		
+		TagWrapper wrapper = new TagWrapper();
+		Collection<Tag> tagCollection = TagDBUtils.findTags(tagRepository);
+		List<Tag> tagList = new ArrayList<Tag>();
+		tagList.addAll(tagCollection);
+		
+		wrapper.setTag(tagList);		
+		return wrapper;
 
 	}
-
+	
 	/**
 	 * Get all tags submitted in the request body as JSON list
 	 * 
@@ -80,6 +62,7 @@ public class TagController {
 	 * @return
 	 */
 	@PostMapping("/daolog/resources/tags/ids")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-TAGS')")
 	@ResponseBody
 	public Set<Tag> getTagsById(@RequestBody List<String> tagIds) {
 
@@ -90,12 +73,16 @@ public class TagController {
 	}
 
 	/**
+	 * Create multiple tags based on incoming JSON objects
 	 * Get all tags submitted in the request body as JSON list
 	 * 
-	 * @param tagIds
-	 * @return
+	 * Jackson will convert the incident JSON object into a TagWrapper object
+	 * 
+	 * @param TagWrapper
+	 * @return Set<Tag> the set of all Tags created
 	 */
 	@PostMapping("/daolog/resources/tags")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-TAGS')")
 	@ResponseBody
 	public Set<Tag> createTags(@RequestBody TagWrapper wrapper) {
 
@@ -122,7 +109,22 @@ public class TagController {
 	}
 
 	/**
-	 * Get a specific tag provided on the URL
+	 * Get a specific tag by name provided on the URL
+	 * 
+	 * @param tagId
+	 * @return
+	 */
+	@GetMapping("/daolog/resources/tag/{tagName}")
+	@ResponseBody
+	public Tag getTagByName(@PathVariable String tagName) {
+
+		logger.info("find() tag_id from mongodb!");
+		return TagDBUtils.findTagByName(tagRepository, tagName);
+
+	}
+	
+	/**
+	 * Get a specific tag by id provided on the URL
 	 * 
 	 * @param tagId
 	 * @return
@@ -136,12 +138,26 @@ public class TagController {
 
 	}
 
-	@GetMapping("/daolog/delete-tags")
+	@DeleteMapping("/daolog/resources/tags/name/{tagName}")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-ADMINS')")
 	@ResponseBody
-	public void deleteAllTags() throws IOException {
+	public void deleteTagByName(@PathVariable String tagName) throws IOException {
 
 		logger.info("delete all tag documents from mongodb");
-		tagRepository.deleteAll();
+		Tag tag = getTagByName(tagName);
+		tagRepository.delete(tag);
 
 	}
+	
+	@DeleteMapping("/daolog/resources/tags/id/{tagId}")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-ADMINS')")
+	@ResponseBody
+	public void deleteTagById(@PathVariable String tagId) throws IOException {
+
+		logger.info("delete all tag documents from mongodb");
+		Optional<Tag> tag = tagRepository.findById(tagId);
+		tagRepository.delete(tag.get());
+
+	}
+	
 }

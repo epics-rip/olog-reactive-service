@@ -1,42 +1,64 @@
 package edu.msu.frib.daolog.controller;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.elasticsearch.common.util.set.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.uuid.EthernetAddress;
+import com.fasterxml.uuid.Generators;
 
+import edu.msu.frib.daolog.log.Attachment;
 import edu.msu.frib.daolog.log.Log;
 import edu.msu.frib.daolog.log.LogWrapper;
+import edu.msu.frib.daolog.log.Logbook;
+import edu.msu.frib.daolog.log.LogbooksWrapper;
+import edu.msu.frib.daolog.log.Property;
 import edu.msu.frib.daolog.log.State;
+import edu.msu.frib.daolog.log.Tag;
+import edu.msu.frib.daolog.log.TagsWrapper;
+import edu.msu.frib.daolog.repository.AttachmentRepository;
 import edu.msu.frib.daolog.repository.LogDBUtils;
 import edu.msu.frib.daolog.repository.LogRepository;
 import edu.msu.frib.daolog.repository.LogbookDBUtils;
 import edu.msu.frib.daolog.repository.LogbookRepository;
+import edu.msu.frib.daolog.repository.PropertyRepository;
 import edu.msu.frib.daolog.repository.TagDBUtils;
 import edu.msu.frib.daolog.repository.TagRepository;
+import edu.msu.frib.daolog.utils.LogUtils;
 
 
 @Controller
@@ -50,8 +72,22 @@ public class LogController {
 	private TagRepository tagRepository;
 	@Autowired
 	private LogbookRepository logbookRepository;
+	@Autowired
+	private AttachmentRepository attachmentRepository;
+	@Autowired
+	private PropertyRepository propertyRepository;
+
+	@Autowired
+	MongoTemplate mongoTemplate;
+	
+	@Value("${olog.limit.default}")
+	private String defaultLimit;
+	
+	@Value("${olog.log.edit.history.toggle_state}")
+	private boolean configSetHistoricalLogToInactive;
 
 	@PostMapping("/daolog/resources/log/createByParam")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-LOGS')")
 	@ResponseBody
 	public Log testCreateLog(@RequestParam(value = "description", required = true) String description,
 			@RequestParam(value = "owner", required = true) String owner,
@@ -66,7 +102,6 @@ public class LogController {
 			@RequestParam(value = "end", required = false) String end) throws IOException {
 
 		Date now = new Date();
-		java.sql.Date createdDate = new java.sql.Date(now.getTime());
 
 		State state = State.valueOf(stateString);
 
@@ -103,73 +138,15 @@ public class LogController {
 	 * @param log
 	 * @return
 	 * @throws IOException
-	 */
-	@PostMapping("/daolog/resources/log/createByJSON")
+	 */	
+	@PostMapping("/daolog/resources/logs")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-LOGS')")
 	@ResponseBody
-	public Log createLogJSON(@RequestBody Log log) throws IOException {
+	public LogWrapper createLogs(@RequestBody Log[] logArray, HttpServletRequest request) throws IOException {
 
-		log.setCreatedDate(new Date());
-		logger.info("log message received: " + log);
-
-		// TODO validate the logbook BSON IDs provided?
-		// TODO validate the tag BSON IDs provided?
-		// TODO validate the entry BSON id provided?l
-
-		// Determine version number for the log message
-		// must query for the existing entry if populated, get the maximum version, then
-		// increment it.
-		if (log.getEntry() != null && !log.getEntry().isEmpty()) {
-			logger.debug("a sublog has been entered to log entry: " + log.getEntry());
-			Integer newVersion = ((LogDBUtils.findLogWithMaxVersion(logRepository, log)).getVersion()) + 1;
-			log.setVersion(newVersion); // increment the version number in the condition of a pre-existing value existed
-		} else {
-			log.setVersion(0);
-		}
-
-		Log savedLog = logRepository.save(log);
-
-		// Upon a log message creation, update the log to include it's own BSON id as
-		// the collection entry value
-		if (savedLog.getEntry() == null || savedLog.getEntry().isEmpty()) {
-			savedLog.setEntry(savedLog.getId());
-			logRepository.save(savedLog);
-		}
-
-		// Use RxJava2 to manage the transfer of the data to mongodb, ES, and Kafka.
-		// TODO also define a value indicating whether the data has been fully processed
-		// in ES and Kafka and database
-
-		logger.info("log message saved to mongodb: " + savedLog);
-		return savedLog;
-	}
-	
-	@PostMapping("/daolog/resources/logs/createByJSON")
-	@ResponseBody
-	public Set<Log> createLogs(InputStream logsStream) throws JsonParseException, JsonMappingException, IOException {
-		
-		// call MongoDB to insert them all into the database
-		Set<Log> savedLogs = LogDBUtils.insertLogs(logRepository, logsStream);		
-		return savedLogs; 
-	}
-	
-
-	
-	@PostMapping("/daolog/resources/login")
-	public ResponseEntity login() throws JsonParseException, JsonMappingException, IOException {
-		
-		// call MongoDB to insert them all into the database
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String currentPrincipalName = authentication.getName();
 		
-		logger.info("user " + currentPrincipalName);
-		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
-	}
-
-	
-	@PostMapping("/daolog/resources/logs")
-	@ResponseBody
-	public LogWrapper createLogs(@RequestBody Log[] logArray) throws IOException {
-
 		if (logArray == null) throw new IllegalArgumentException("createLogs argument may not be null");
 
 		LogWrapper wrapper = new LogWrapper();
@@ -179,18 +156,29 @@ public class LogController {
 			log.setCreatedDate(new Date());
 			logger.info("log message received: " + log);
 		
-			// Determine version number for the log message
-			// must query for the existing entry if populated, get the maximum version, then
-			// increment it.
-			if (log.getEntry() != null && !log.getEntry().isEmpty()) {
-				logger.debug("a sublog has been entered to log entry: " + log.getEntry());
-				Integer newVersion = ((LogDBUtils.findLogWithMaxVersion(logRepository, log)).getVersion()) + 1;
-				log.setVersion(newVersion); // increment the version number in the condition of a pre-existing value existed
-			} else {
-				log.setVersion(0);
+			log.setVersion(0);			
+			log.setSource(request.getRemoteAddr());
+			log.setOrigin(Generators.timeBasedGenerator(EthernetAddress.fromInterface()).generate().toString());
+			log.setOwner(currentPrincipalName);
+			log.setState(State.Active);
+			
+			if (log.getEventStart() == null) {
+				log.setEventStart(log.getCreatedDate());
 			}
+			
+
+			// Update the propertyIds
+			List<String> propertyIds = new LinkedList<String>();
+			// populate the propertyIds field from the Properties data structure
+			// overriding the setProperties is done to capture RESTful creations
+			log.getProperties().forEach(property -> propertyIds.add(property.getId()));
+			log.setPropertyIds(propertyIds);
+			log.setProperties(new ArrayList<Property>());
+			
+			logger.debug("log {}", log);
 	
 			Log savedLog = logRepository.save(log);
+			logger.debug("savedLog {}", savedLog);
 	
 			// Upon a log message creation, update the log to include it's own BSON id as
 			// the collection entry value
@@ -199,7 +187,7 @@ public class LogController {
 				logRepository.save(savedLog);
 				wrapper.getLog().add(savedLog);
 			}
-	
+				
 			// Use RxJava2 to manage the transfer of the data to mongodb, ES, and Kafka.
 			// TODO also define a value indicating whether the data has been fully processed
 			// in ES and Kafka and database
@@ -211,10 +199,11 @@ public class LogController {
 
 	@GetMapping("/daolog/resources/logs")
 	@ResponseBody
-	public List<Log> getLogs(@RequestParam(value = "history", required = false) String history,
+	public List<Log> getLogs(
+			@RequestParam(value = "history", required = false) String history,
 			@RequestParam(value = "page", required = false) String page,
 			@RequestParam(value = "limit", required = false) String limit,
-			@RequestParam(value = "sort", required = false) String sort,
+			@RequestParam(value = "sort", required = false) String sortField,
 			@RequestParam(value = "search", required = false) String search,
 			@RequestParam(value = "id", required = false) String id,
 			@RequestParam(value = "tag", required = false) String tag,
@@ -224,55 +213,164 @@ public class LogController {
 			@RequestParam(value = "source", required = false) String source,
 			@RequestParam(value = "start", required = false) String start,
 			@RequestParam(value = "end", required = false) String end,
-			@RequestParam(value = "empty", required = false) String empty) throws IOException {
+			@RequestParam(value = "empty", required = false) String empty
+			) throws IOException {
 
-		// validate input
-		// check input for valid input and valid ranges, and throw LogsException if
-		// necessary
+		if (logger.isDebugEnabled()) logger.debug("find data from mongodb with the following criteria: "
+				+ "page:{};limit:{};sort:{};search:{};id:{};tag:{};"
+				+ "logbook:{};property:{};owner:{};source:{};start:{};end:{};empty:{}",
+				page,limit,sortField,search,id,tag,logbook,property,owner,source,start,end,empty);
+		
+		List<Log> logs = null;
+		
+		try {
+			Integer.valueOf(page);
+			logger.debug("page: {}", page);
+		} catch (NumberFormatException e) {
+			page = "1";
+		}
 
-		// Query database for log messages
-		// TODO For now, merely query mongodb for all records, however, will will be
-		// changing this to streaming
-		// How to implement streaming for this? One page worth at a time...
-		// TODO will stream the data using reactive streams...
-		logger.info("findAll() from mongodb!");
-		List<Log> logs = logRepository.findAll();
+		try {
+			Integer.valueOf(limit);
+			logger.debug("limit: {}", limit);
+		} catch (NumberFormatException e) {
+			limit = defaultLimit;
+		}
+		
+		// Pageable is zero based; logbook UI is 1 based
+		Pageable pageable = new PageRequest(Integer.valueOf(page)-1, Integer.valueOf(limit));
+		
+		List<Criteria> orCriteria = new ArrayList<Criteria>();
+		List<Criteria> andCriteria = new ArrayList<Criteria>();
+		
+		
+		if (search  != null) orCriteria.add(Criteria.where("description").regex(search.replaceAll("\\*", "").replace(",", "|")));
+		if (owner   != null) orCriteria.add(Criteria.where("owner").regex(owner));
+		if (source  != null) orCriteria.add(Criteria.where("source").regex(source));
+		
+		if (id      != null) andCriteria.add(Criteria.where("_id").is(id));
+		if (start   != null) andCriteria.add(Criteria.where("eventStart").gte(start));
+		if (end     != null) andCriteria.add(Criteria.where("eventStart").lte(end));
+		if (logbook != null) {
+			// logbook can contain a CSV of logbook names: convert to pipes for regex
+			// need to query the subdocument logbooks for names using elemMatch
+			orCriteria.add(Criteria.where("logbooks").elemMatch(Criteria.where("name").in(StringUtils.commaDelimitedListToSet(logbook))));
+		}
+		if (tag != null) {
+			// tag can contain a CSV of tag names: convert to pipes for regex
+			// need to query the subdocument tags for names using elemMatch
+			// TODO andCriteria.add(Criteria.where("tags").elemMatch(Criteria.where("name").regex(tag.replace(",", "|"))));
+			orCriteria.add(Criteria.where("tags").elemMatch(Criteria.where("name").in(StringUtils.commaDelimitedListToSet(tag))));
+		}
+		
+		
+		Criteria queryCriteria = new Criteria();
+		if (orCriteria.size() != 0) {
+			queryCriteria = queryCriteria.orOperator(orCriteria.toArray(new Criteria[orCriteria.size()]));
+		}
+		if (andCriteria.size() != 0) {
+			queryCriteria = queryCriteria.andOperator(andCriteria.toArray(new Criteria[andCriteria.size()]));
+		}
+		
+		Sort sort = new Sort(Sort.Direction.DESC, "entry").and(new Sort(Sort.Direction.DESC, "version"));
+		if (sortField != null) {
+			sort = new Sort(Sort.Direction.DESC, "entry").and(new Sort(Sort.Direction.ASC, "version")).and(new Sort(Sort.Direction.DESC, (sortField.equals("created")) ? "createdDate" : sortField));
+		}
+				
+		if (queryCriteria == null) {
+			if (logger.isDebugEnabled()) logger.debug("query without criteria: {}", queryCriteria);
+			logs = mongoTemplate
+					.find(new Query()
+						.with(pageable).with(sort),
+						Log.class);
+		} else {
+			if (logger.isDebugEnabled()) logger.debug("query with criteria: {}", queryCriteria);
+			logs = mongoTemplate
+					.find(new Query()
+						.with(pageable).with(sort)
+						.addCriteria(queryCriteria),
+						Log.class);
+		}
 
-		// XXX sort=options probably defined in database
-		// TODO limit=number of records to display in one page
-		// TODO page=index of the set of records returned being displayed right now
-		// TODO history=unknown; probably a date to query by...this might be where the
-		// one requirement about going back in time like a pointer comes in handy;
-		// currently it might just query for that date...investigate
-
-		// TODO populate the logbooks and tags via manual referencing suggested by
-		// mongodb
-		// this is the classic n+1 problem, and in MongoDB, it's particularly
-		// problematic
-		// for large n, this will be a flood of queries
+		if (logger.isDebugEnabled()) logger.debug("log count: " + logs.size());
 		for (Log log : logs) {
-
+			if (logger.isTraceEnabled()) logger.trace("log.getId(): {}", log.getId());
 			// populate tags
 			log.setTags(TagDBUtils.findTags(tagRepository, log.getTagIds()));
+			if (logger.isDebugEnabled()) logger.debug("tags for logid({}): {}", log.getId(), log.getTags());
+			
 			// populate logbooks
-			log.setLogbooks(LogbookDBUtils.findLogbooks(logbookRepository, log.getLogbookIds()));
+			LogbooksWrapper wrapper = logRepository.findLogbookByLogId(log.getId());
+
+			Set<Logbook> logbookSet = new HashSet<Logbook>();
+			logbookSet.addAll(wrapper.getLogbooks());		
+			log.setLogbooks(logbookSet);
+
+			// populate tags
+			TagsWrapper tagsWrapper = logRepository.findTagsByLogId(log.getId());
+			Set<Tag> tagSet = new HashSet<Tag>();
+			tagSet.addAll(tagsWrapper.getTags());	
+			log.setTags(tagSet);
+			
+			// Read the attachments based on the attachmentIds identified
+			Set<Attachment> attachments = Sets.newHashSet(attachmentRepository.findAllById(log.getAttachmentIds()));
+			log.setAttachments(attachments);
+			
+			// Read properties
+			Set<Property> properties = Sets.newHashSet(propertyRepository.findAllById(log.getPropertyIds()));
+			log.setProperties(properties);
+			
+			if (logger.isTraceEnabled()) {
+				logger.trace("log: {}", log.toString());
+			}
 		}
-
-		StringBuffer buff = new StringBuffer();
-		logger.info("log count: " + logs.size());
-		buff.append("log count: " + logs.size() + "<br/><p/>");
-
-		for (Log log : logs) {
-			buff.append("owner: " + log.getOwner() + "<br/>");
-			buff.append("description: " + log.getDescription() + "<br/>");
-			buff.append("<p/>");
-		}
-
-		buff.append(
-				"<br/>return page=" + page + "; history=" + history + "; limit=" + limit + "; sort=" + sort + "<br/>");
-
-		logger.info(buff.toString());
+	
 		return logs;
+	}
+	
+	/**
+	 * PutMapping for edits.  Editing is a misnomer.  There is no editing.  There is only clarification of the parent.
+	 * The child is displayed as the latest, with history permitting perusal of the older versions.
+	 * @param log
+	 * @param request
+	 * @return
+	 */
+	@PutMapping("/daolog/resources/logs/{logId}")
+	@PreAuthorize("hasAuthority('ROLE_OLOG-LOGS')")
+	@ResponseBody
+	public Log updateLog(@PathVariable("logId") String logId, @RequestBody Log newLog, HttpServletRequest request) {
+
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		String currentPrincipalName = authentication.getName();
+
+		if (newLog == null) throw new IllegalArgumentException("createLogs argument may not be null");	
+		if (!newLog.getId().equals(logId)) throw new IllegalArgumentException("log id does not match log id of object json");	
+
+		logger.info("newLog: " + newLog.toString());
+		
+		// Retrieve the original log from the database
+		Log originalLog = LogDBUtils.findLog(logRepository, logId);
+
+		newLog.setId(null); // necessary to generate new log entry
+		newLog = LogUtils.updateLogEntry(newLog, originalLog);
+		newLog = LogUtils.updateLogVersion(newLog, originalLog);
+
+		newLog.setSource(request.getRemoteAddr());
+		newLog.setOrigin(Generators.timeBasedGenerator(EthernetAddress.fromInterface()).generate().toString());
+		newLog.setOwner(currentPrincipalName);
+		newLog.setState(State.Active);
+		newLog.setCreatedDate(new Date());
+		
+		// Save the object to the database		
+		Log savedNewLog = logRepository.save(newLog);
+		
+		// Save the original log entry's state to Inactive
+		if (configSetHistoricalLogToInactive) {
+			originalLog.setState(State.Inactive);
+			logRepository.save(originalLog);
+		}
+		
+		return savedNewLog;
 	}
 
 	@GetMapping("/daolog/resources/logs/{logId}")
@@ -280,24 +378,15 @@ public class LogController {
 	public Log getLog(@PathVariable("logId") String logId) throws IOException {
 
 		logger.info("findAll() from mongodb!");
-		Log log = logRepository.findById(logId);
+		Optional<Log> log = logRepository.findById(logId);
 
 		// populate tags
-		log.setTags(TagDBUtils.findTags(tagRepository, log.getTagIds()));
+		log.get().setTags(TagDBUtils.findTags(tagRepository, log.get().getTagIds()));
 
 		// populate logbook
-		log.setLogbooks(LogbookDBUtils.findLogbooks(logbookRepository, log.getLogbookIds()));
+		log.get().setLogbooks(LogbookDBUtils.findLogbooks(logbookRepository, log.get().getLogbookIds()));
 
-		return log;
-	}
-
-	@GetMapping("/daolog/delete-logs")
-	@ResponseBody
-	public void deleteAllLogs() throws IOException {
-
-		logger.info("delete all log documents from mongodb");
-		logRepository.deleteAll();
-
+		return log.get();
 	}
 
 	@ExceptionHandler(MissingServletRequestParameterException.class)

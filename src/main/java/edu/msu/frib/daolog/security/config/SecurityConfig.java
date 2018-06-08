@@ -3,41 +3,46 @@ package edu.msu.frib.daolog.security.config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 
+import edu.msu.frib.daolog.security.JWTAuthnFilter;
+import edu.msu.frib.daolog.security.JWTAuthzFilter;
 
-@EnableWebSecurity(debug = true)
+
+@EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	private static Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+
+	@Value("${olog.security.jwt.expiration_time}")
+	private Long expirationTime;
+	@Value("${olog.security.jwt.secret}")
+	private String secret;
+	@Value("${olog.ldap.userDN.format}")
+	public String userDNFormat;
+	
 	
 	@Override
 	protected void configure(HttpSecurity http) throws Exception {
-		http
-			.csrf().disable()
-			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-			.and()
-			.authorizeRequests()
-				.antMatchers(HttpMethod.GET, "/**").permitAll()
-				.antMatchers(HttpMethod.HEAD, "/**").permitAll()
-				.antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-				.antMatchers(HttpMethod.POST, "/daolog/resources/logs/**").hasRole("OLOG-LOGS")
-				.antMatchers(HttpMethod.POST, "/daolog/resources/tags/**").hasRole("OLOG-TAGS")
-				.antMatchers(HttpMethod.POST, "/daolog/resources/logbooks").hasRole("OLOG-LOGBOOKS")
-				.antMatchers(HttpMethod.POST, "/daolog/resources/logbooks/**").hasRole("OLOG-LOGBOOKS")
-				.antMatchers(HttpMethod.DELETE, "/**").hasRole("OLOG-ADMINS")
-				.antMatchers(HttpMethod.PUT, "/**").hasRole("OLOG-ADMINS")
-				.antMatchers(HttpMethod.PATCH, "/**").hasRole("OLOG-ADMINS")
-				.antMatchers(HttpMethod.TRACE, "/**").hasRole("OLOG-ADMINS")
-				.anyRequest().authenticated()
-				.and()
-				.httpBasic()
-				;	
+				
+		http.cors().and().csrf().disable()
+    	.authorizeRequests()	
+			.antMatchers(HttpMethod.POST, "/daolog/resources/login").permitAll()
+    		.antMatchers(HttpMethod.GET, "/**").permitAll()
+            .anyRequest().authenticated()
+            .and()
+            .addFilter(new JWTAuthnFilter(authenticationManager(), secret, expirationTime))
+            .addFilter(new JWTAuthzFilter(authenticationManager(), secret, userDNFormat))
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
 	}
 
 	@Autowired

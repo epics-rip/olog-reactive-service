@@ -9,14 +9,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -26,16 +22,13 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.embedded.LocalServerPort;
-import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.http.HttpEntity;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -44,10 +37,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 
 import edu.msu.frib.daolog.Application;
 import edu.msu.frib.daolog.ApplicationConfig;
-import edu.msu.frib.daolog.controller.LogbookController;
-import edu.msu.frib.daolog.db.MongoDBDaologConfig;
+import edu.msu.frib.daolog.db.MongoInMemoryConfig;
 import edu.msu.frib.daolog.log.Logbook;
-import edu.msu.frib.daolog.log.State;
 
 /**
  * @author vagrant
@@ -55,13 +46,17 @@ import edu.msu.frib.daolog.log.State;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes= {Application.class}, webEnvironment=WebEnvironment.DEFINED_PORT)
-@ContextConfiguration(classes={ApplicationConfig.class,MongoDBDaologConfig.class})
+@ContextConfiguration(classes={ApplicationConfig.class,MongoInMemoryConfig.class})
+@ActiveProfiles("development")
 public class LogbookDBUtilsTest {
 
 	private static Logger logger = LoggerFactory.getLogger(LogbookDBUtilsTest.class);
 	
 	@Autowired
 	LogbookRepository logbookRepository;
+	
+	@Autowired
+	MongoTemplate mongoTemplate;
     	
 	public InputStream logbooksStream;
 	public Set<Logbook> populatedLogbooks;
@@ -96,17 +91,6 @@ public class LogbookDBUtilsTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-	}
-
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@After
-	public void tearDown() throws Exception {
-	}
-
-	@Test
-	public void testCreateLogbooks() throws JsonParseException, JsonMappingException, IOException {
 
 		Resource logbookFile = new ClassPathResource("db/logbooks.json");
 		try {
@@ -130,7 +114,6 @@ public class LogbookDBUtilsTest {
 		List<String> logbooksIds = new LinkedList<String>();
 		
 		// create the entries
-		testCreateLogbooks();
 		System.out.println("after create logbooks called");
 		populatedLogbooks.forEach(logbook -> logbooksIds.add(logbook.getId()));
 		
@@ -139,6 +122,19 @@ public class LogbookDBUtilsTest {
 		for (Logbook logbook : retrievedLogbooks) {
 			LogbookDBUtilsTest.validateLogbook(logbook);
 		}
+	}
+
+
+	@After
+	public void tearDown() throws JsonParseException, JsonMappingException, IOException {
+		List<String> logbooksIds = new LinkedList<String>();
+		
+		// remove the entries
+		System.out.println("after create logbooks called");
+		populatedLogbooks.forEach(logbook -> logbooksIds.add(logbook.getId()));
+		
+		LogbookDBUtils.removeLogbooks(mongoTemplate, logbooksIds);
+		
 	}
 	
 	private static void validateLogbook(Logbook logbook) {

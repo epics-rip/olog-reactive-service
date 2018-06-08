@@ -1,8 +1,6 @@
 package edu.msu.frib.daolog.log;
 
 import java.sql.Date;
-import java.util.Collection;
-import java.util.LinkedList;
 
 import org.springframework.data.annotation.Id;
 

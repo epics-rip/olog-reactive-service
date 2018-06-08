@@ -1,16 +1,16 @@
 package edu.msu.frib.daolog.log;
 
-import java.util.List;
+import java.util.Collection;
 
 public class LogbooksWrapper {
 
-	private List<Logbook> logbooks;
+	private Collection<Logbook> logbooks;
 
-	public List<Logbook> getLogbooks() {
+	public Collection<Logbook> getLogbooks() {
 		return logbooks;
 	}
 
-	public void setLogbooks(List<Logbook> logbooks) {
+	public void setLogbooks(Collection<Logbook> logbooks) {
 		this.logbooks = logbooks;
 	}
 	

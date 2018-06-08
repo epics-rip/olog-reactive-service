@@ -27,7 +27,7 @@ public class Tag {
 	private Date createdDate;
 	
 	public Tag() {
-		// Nothing to do; default dummy constructor, the way Spring likes 'em
+		// default constructor
 	}
     
 	public String getId() {

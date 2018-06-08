@@ -1,16 +1,16 @@
 package edu.msu.frib.daolog.log;
 
-import java.util.List;
+import java.util.Collection;
 
 public class TagsWrapper {
 
-	private List<Tag> tags;
+	private Collection<Tag> tags;
 
-	public List<Tag> getTags() {
+	public Collection<Tag> getTags() {
 		return tags;
 	}
 
-	public void setTags(List<Tag> tags) {
+	public void setTags(Collection<Tag> tags) {
 		this.tags = tags;
 	}
 	

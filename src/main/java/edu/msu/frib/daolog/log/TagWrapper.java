@@ -13,6 +13,9 @@ public class TagWrapper {
 	public List<Tag> getTags() {
 		return tag;
 	}
+	public List<Tag> getTag() {
+		return tag;
+	}
 
 	public void setTags(List<Tag> tag) {
 		this.tag = tag;

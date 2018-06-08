@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -24,9 +25,25 @@ public class TagDBUtils {
 
 	public static Tag findTag(TagRepository tagRepository, String tagId) {
 
-        Tag tag = tagRepository.findById(tagId);        
-    	logging(tag, "findAllTags(TagRepository tagRepository): ");
-    	return tag;
+        Optional<Tag> tag = tagRepository.findById(tagId);        
+    	logging(tag.get(), "findAllTags(TagRepository tagRepository): ");
+    	return tag.get();
+	}
+	
+	/**
+	 * Retrieve tag by tag name.
+	 * TagName is unique in the database
+	 * 
+	 * @param tagRepository
+	 * @param tagName
+	 * @return
+	 */
+	public static Tag findTagByName(TagRepository tagRepository, String tagName) {
+
+        Set<Tag> tags = tagRepository.findByName(tagName);        
+    	logging(tags, "findAllTags(TagRepository tagRepository): ");
+    	
+    	return tags.toArray(new Tag[]{})[0];
 	}
 	
 	public static Set<Tag> findTags(TagRepository tagRepository) {
@@ -50,7 +67,7 @@ public class TagDBUtils {
 
     	// Perform the query to return the Iterable result of all matching tag objects
     	// then migrates the objects into the HashSet to return
-    	(tagRepository.findAll(tag_ids)).forEach(tag -> tagsProper.add(tag));
+    	(tagRepository.findAllById(tag_ids)).forEach(tag -> tagsProper.add(tag));
 
     	logging(tags, "findTags(TagRepository tagRepository, Set<Tag> tags) ");
         return tagsProper;
@@ -63,7 +80,7 @@ public class TagDBUtils {
         
     	// Perform the query to return the Iterable result of all matching tag objects
     	// then migrates the objects into the HashSet to return
-    	(tagRepository.findAll(tagList)).forEach(tag -> tags.add(tag));
+    	(tagRepository.findAllById(tagList)).forEach(tag -> tags.add(tag));
     	
     	logging(tags, "findTags(TagRepository tagRepository, List<String> tagList) ");
         
@@ -138,6 +155,6 @@ public class TagDBUtils {
         	buff.append("\n");
         }
 
-        logger.info(buff.toString());
+        if (logger.isTraceEnabled()) logger.trace(buff.toString());
 	}
 }

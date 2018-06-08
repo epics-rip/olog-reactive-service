@@ -6,26 +6,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
+@RequestMapping("/daolog")
 public class DefaultController {
 
 	private static Logger logger = LoggerFactory.getLogger(DefaultController.class);
 
 	
-	@GetMapping("/daolog")
+	@GetMapping("/")
 	public String home() {
 		return "home";
 	}
 	
-	@GetMapping("/daolog/status")
+	@GetMapping("/status")
 	@ResponseBody
 	public String status() throws IOException {
 		return "DAOLOG running ok";
 	}
 
-	@GetMapping("/daolog/monitor")
+	@GetMapping("/monitor")
 	public String redirectToMonitor() throws IOException {
 		return "redirect:http://localhost:2812";
 	}

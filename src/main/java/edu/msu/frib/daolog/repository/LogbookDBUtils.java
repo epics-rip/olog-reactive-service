@@ -5,11 +5,14 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -23,9 +26,9 @@ public class LogbookDBUtils {
 	
 	public static Logbook findLogbook(LogbookRepository logbookRepository, String logbookId) {
 
-        Logbook logbook = logbookRepository.findById(logbookId);        
-    	logging(logbook, "findLogbooks(LogbookRepository logbookRepository): ");
-    	return logbook;
+        Optional<Logbook> logbook = logbookRepository.findById(logbookId);        
+    	logging(logbook.get(), "findLogbooks(LogbookRepository logbookRepository): ");
+    	return logbook.get();
 	}
 	
 	public static Set<Logbook> findLogbooks(LogbookRepository logbookRepository) {
@@ -49,7 +52,7 @@ public class LogbookDBUtils {
 
     	// Perform the query to return the Iterable result of all matching Logbook objects
     	// then migrates the objects into the HashSet to return
-    	(logbookRepository.findAll(logbookIds)).forEach(log -> logbooks.add(log));
+    	(logbookRepository.findAllById(logbookIds)).forEach(log -> logbooks.add(log));
 
     	logging(logbooks, "findLogbooks(LogbookRepository logbookRepository, Set<Logbook> sparseLogbooks) ");
         return logbooks;
@@ -62,12 +65,27 @@ public class LogbookDBUtils {
         
     	// Perform the query to return the Iterable result of all matching Logbook objects
     	// then migrates the objects into the HashSet to return
-    	(logbookRepository.findAll(logbookIds)).forEach(Logbook -> logbooks.add(Logbook));
+    	(logbookRepository.findAllById(logbookIds)).forEach(logbook -> logbooks.add(logbook));
     	
     	logging(logbooks, "findLogbooks(LogbookRepository logbookRepository, List<String> logbookIds) ");
         
         return logbooks;
 	}
+	
+//	public static Set<Logbook> findLogbooks(MongoTemplate template, Log log) {
+//		
+//		
+//		Query query = new Query();
+//		query.addCriteria(Criteria.where("_id").is(log.getId()).
+//				
+//				
+//				
+//				elemMatch(
+//		         Criteria.where("name").lte(5)
+//		        .andOperator(Criteria.where("end").gte(5))));
+//		Foo foo = mongoTemplate.findOne(query, Foo.class);
+//		
+//	}
 	
 	public static Set<Logbook> insertLogbooks(LogbookRepository logbookRepository, InputStream logbooksStream) 
 			throws JsonParseException, JsonMappingException, IOException {
@@ -114,6 +132,17 @@ public class LogbookDBUtils {
         Set<Logbook> logbooksSet = new HashSet<Logbook>(logbooksList);
         
         return logbooksSet;
+	}
+	
+	public static void removeLogbooks(MongoTemplate mongoTemplate, List<String> logbookIds) {
+		
+		for (String id : logbookIds) {
+			Query query = new Query();
+			query.addCriteria(Criteria.where("id").is(id));
+			mongoTemplate.findAllAndRemove(query, Logbook.class, "logbooks");
+		}
+		
+		
 	}
 	
 	public static void logging(Logbook logbook, String info) {

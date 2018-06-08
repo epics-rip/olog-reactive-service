@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -25,9 +26,9 @@ public class LogDBUtils {
 
 	public static Log findLog(LogRepository logRepository, String logId) {
 
-        Log log = logRepository.findById(logId);        
-    	logging(log, "findAllLogs(logRepository logRepository): ");
-    	return log;
+        Optional<Log> log = logRepository.findById(logId);        
+    	logging(log.get(), "findAllLogs(logRepository logRepository): ");
+    	return log.get();
 	}
 	
 	public static Set<Log> findLogs(LogRepository logRepository) {
@@ -51,7 +52,7 @@ public class LogDBUtils {
 
     	// Perform the query to return the Iterable result of all matching Log objects
     	// then migrates the objects into the HashSet to return
-    	(logRepository.findAll(log_ids)).forEach(log -> logsProper.add(log));
+    	(logRepository.findAllById(log_ids)).forEach(log -> logsProper.add(log));
 
     	logging(logs, "findLogs(LogRepository logRepository, Set<Log> logs) ");
         return logsProper;
@@ -64,7 +65,7 @@ public class LogDBUtils {
         
     	// Perform the query to return the Iterable result of all matching Log objects
     	// then migrates the objects into the HashSet to return
-    	(logRepository.findAll(logList)).forEach(Log -> logs.add(Log));
+    	(logRepository.findAllById(logList)).forEach(Log -> logs.add(Log));
     	
     	logging(logs, "findLogs(LogRepository logRepository, List<String> logList) ");
         
